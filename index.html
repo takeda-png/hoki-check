@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>敷地・法規チェック</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: 製図用の記入シート。左＝条件の記入欄、右＝判定（追従）。狭い画面は縦積み */
+:root{
+  --bg:#eef1f3; --sheet:#fbfcfc; --fg:#1b2730; --sub:#5a6872; --line:#cfd7dc; --line2:#e3e8eb;
+  --ink:#24506e; --ink-soft:#dce8f0;
+  --ok:#2f7a4f; --ok-bg:#e2f1e8; --ng:#b3322d; --ng-bg:#f8e1df; --warn:#9a6a0b; --warn-bg:#f8edd2; --na:#6a7780; --na-bg:#e9edef;
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --f-num:"IBM Plex Sans","Zen Kaku Gothic New","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12181c; --sheet:#182128; --fg:#dfe6ea; --sub:#93a2ac; --line:#33424c; --line2:#26323a;
+  --ink:#8dbbdb; --ink-soft:#22374a;
+  --ok:#6cc391; --ok-bg:#1a3426; --ng:#f08a82; --ng-bg:#3f1f1d; --warn:#e3b45a; --warn-bg:#3a2e14; --na:#9aa7af; --na-bg:#232d33; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181c; --sheet:#182128; --fg:#dfe6ea; --sub:#93a2ac; --line:#33424c; --line2:#26323a;
+  --ink:#8dbbdb; --ink-soft:#22374a;
+  --ok:#6cc391; --ok-bg:#1a3426; --ng:#f08a82; --ng-bg:#3f1f1d; --warn:#e3b45a; --warn-bg:#3a2e14; --na:#9aa7af; --na-bg:#232d33; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:2px solid var(--fg);padding-bottom:10px}
+h1{font-family:var(--f-display);font-size:26px;margin:0;letter-spacing:.04em;text-wrap:balance}
+.lead{color:var(--sub);margin:2px 0 0;font-size:13px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--sheet);color:var(--fg);padding:6px 12px}
+button:hover{border-color:var(--ink)}
+button.primary{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.sample{display:flex;gap:10px;align-items:flex-start;background:var(--warn-bg);color:var(--fg);border:1px solid var(--warn);border-radius:6px;padding:8px 12px;font-size:13px}
+.sample b{color:var(--warn)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:1000px){.grid{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)} .results{position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px);overflow:auto}}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:8px}
+fieldset{border:0;margin:0;padding:14px 16px;border-top:1px solid var(--line2)}
+fieldset:first-of-type{border-top:0}
+legend{font-family:var(--f-display);font-size:16px;font-weight:700;padding:0;margin-bottom:8px;display:flex;gap:8px;align-items:baseline}
+legend small{font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--sub)}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 14px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub);min-width:0}
+label.wide{grid-column:1/-1}
+label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--fg);font-size:13px}
+input,select,textarea{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 8px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+input[type=checkbox]{width:auto}
+.hint{font-size:12px;color:var(--sub);margin:6px 0 0}
+.unit{font-family:var(--f-num)}
+.results{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{border-radius:6px;padding:8px 10px;display:flex;flex-direction:column}
+.tile span{font-size:12px}
+.tile b{font-family:var(--f-num);font-size:24px;font-variant-numeric:tabular-nums;line-height:1.2}
+.t-ok{background:var(--ok-bg);color:var(--ok)} .t-ng{background:var(--ng-bg);color:var(--ng)} .t-warn{background:var(--warn-bg);color:var(--warn)} .t-na{background:var(--na-bg);color:var(--na)}
+.key{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;border:1px solid var(--line2);border-radius:6px;padding:10px 12px}
+.key div{display:flex;flex-direction:column}
+.key span{font-size:12px;color:var(--sub)}
+.key b{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:17px}
+h2{font-family:var(--f-display);font-size:17px;margin:0}
+.checks{display:flex;flex-direction:column;gap:0;border:1px solid var(--line2);border-radius:6px}
+.check{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:10px 12px;border-top:1px solid var(--line2)}
+.check:first-child{border-top:0}
+.pill{font-size:12px;font-weight:700;border-radius:999px;text-align:center;padding:2px 0;align-self:start}
+.p-ok{background:var(--ok-bg);color:var(--ok)} .p-ng{background:var(--ng-bg);color:var(--ng)} .p-warn{background:var(--warn-bg);color:var(--warn)} .p-na{background:var(--na-bg);color:var(--na)}
+.check h3{font-size:14px;margin:0;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.check h3 small{font-weight:400;color:var(--sub);font-size:12px}
+.vals{font-family:var(--f-num);font-variant-numeric:tabular-nums;margin-top:2px}
+.formula{font-size:12px;color:var(--sub);margin-top:2px;overflow-wrap:anywhere}
+.todo{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
+.todo li small{color:var(--sub)}
+.foot{font-size:12px;color:var(--sub);border-top:1px solid var(--line2);padding-top:10px}
+.foot p{margin:0 0 4px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);border-radius:6px;padding:8px 14px;font-size:13px}
+#copybox{width:100%;height:160px;font-size:12px}
+.read{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.read h2 small{font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--sub);margin-left:6px}
+.drop{border:1.5px dashed var(--line);border-radius:8px;padding:14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--bg)}
+.drop.over{border-color:var(--ink);background:var(--ink-soft)}
+.drop .names{font-size:13px;color:var(--sub);flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.status{font-size:13px;color:var(--sub);min-height:1.4em}
+.status.err{color:var(--ng)}
+.ai input,.ai select{border-color:var(--ink);background:var(--ink-soft)}
+.src{font-size:11px;color:var(--ink);line-height:1.4;overflow-wrap:anywhere}
+.src.conf-low{color:var(--warn)}
+.confirmbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:var(--ink-soft);border:1px solid var(--ink);border-radius:6px;padding:8px 12px;font-size:13px}
+.confirmbar span{flex:1 1 260px;min-width:0}
+.tent{opacity:.55}
+.prov{font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-bg);border-radius:999px;padding:1px 10px;margin-left:8px;font-family:var(--f-body)}
+.conflicts{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.conflicts div{border-left:3px solid var(--warn);padding-left:8px}
+.found{margin:0;padding-left:1.3em;font-size:13px}
+@media (max-width:520px){.summary{grid-template-columns:repeat(2,1fr)} h1{font-size:22px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>敷地・法規チェック</h1>
+      <p class="lead">敷地と計画の数字から、建蔽率・容積率・高さ・斜線・防火を判定します。式と条文を出すので検算できます。</p>
+    </div>
+    <div class="actions">
+      <button type="button" id="btnSample">サンプルに戻す</button>
+      <button type="button" id="btnClear">新しい案件</button>
+      <button type="button" class="primary" id="btnCopy">結果をコピー</button>
+    </div>
+  </header>
+
+  <div class="sample" id="sampleNote"><b>サンプル</b><span>いま表示しているのは架空の案件（○○市・第一種低層住居専用地域・2項道路に接する150㎡の敷地に木造2階建て）です。実際の案件の数字に書き換えて使ってください。</span></div>
+
+  <section class="sheet read" id="readBox">
+    <h2>資料から読み取る<small>重要事項説明書・土地の調査報告書・役所調査メモ・求積図など（PDF・写真）</small></h2>
+    <div class="drop" id="drop">
+      <button type="button" id="btnPick">ファイルを選ぶ</button>
+      <span class="names" id="names">ここにファイルをドロップできます。複数まとめてどうぞ。</span>
+      <input type="file" id="fileIn" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple hidden>
+    </div>
+    <div class="actions">
+      <button type="button" class="primary" id="btnRead" disabled>読み取って入力する</button>
+      <button type="button" id="btnDemo">サンプルの重説で試す</button>
+      <button type="button" id="btnStop" hidden>止める</button>
+      <button type="button" id="btnFilesClear">ファイルを外す</button>
+    </div>
+    <p class="status" id="rstatus"></p>
+    <p class="hint">AIが数字を読み取って下の入力欄に入れます（青い欄）。判定は計算で行います。斜線の距離は図面の寸法を拾う作業なので手入力のままです。</p>
+  </section>
+
+  <div class="confirmbar" id="confirmBar" hidden>
+    <span id="confirmText"></span>
+    <button type="button" class="primary" id="btnConfirm">資料と見比べて確認済みにする</button>
+  </div>
+
+  <div class="grid">
+    <form class="sheet" id="f" autocomplete="off">
+      <fieldset>
+        <legend>案件</legend>
+        <div class="row">
+          <label class="wide">案件名<input id="name" type="text"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>敷地の条件 <small>重要事項説明書・都市計画図から</small></legend>
+        <div class="row">
+          <label class="wide">用途地域<select id="zone"></select></label>
+          <label>指定建蔽率<select id="kenpei"></select></label>
+          <label>指定容積率<select id="yoseki"></select></label>
+          <label>防火の指定<select id="bouka">
+            <option value="bouka">防火地域</option><option value="jun">準防火地域</option>
+            <option value="22">法22条区域</option><option value="none">指定なし</option></select></label>
+          <label>敷地面積（㎡）<input id="site" type="number" step="0.01" min="0"></label>
+          <label>絶対高さの限度<select id="absH"><option value="10">10m</option><option value="12">12m</option></select></label>
+          <label>高度地区<select id="koudo"><option value="none">なし</option><option value="1">第1種高度地区</option><option value="2">第2種高度地区</option><option value="3">第3種高度地区</option><option value="other">その他（最高限度など）</option></select></label>
+          <label>敷地面積の最低限度（㎡）<input id="minSite" type="number" step="0.01" min="0" placeholder="定めなし"></label>
+          <label>外壁後退の距離（m）<input id="gaiheki" type="number" step="0.1" min="0" placeholder="定めなし"></label>
+          <label class="chk"><input id="kado" type="checkbox">角地の指定を受けている</label>
+          <label class="chk"><input id="nichiei" type="checkbox">日影規制の対象区域</label>
+          <label class="wide">容積率の道路幅員による係数<select id="coef"><option value="auto">用途地域どおり（住居系0.4／その他0.6）</option><option value="0.4">0.4</option><option value="0.6">0.6</option><option value="0.8">0.8</option></select></label>
+          <label class="wide" id="slopeWrap" hidden>道路斜線の勾配（用途地域の指定がない区域）<select id="slopeNone"><option value="1.25">1.25</option><option value="1.5">1.5</option></select></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>前面道路 <small>幅員が最大の道路</small></legend>
+        <div class="row">
+          <label>道路の種別<select id="roadType"><option value="1">42条1項道路（4m以上）</option><option value="2">42条2項道路（4m未満）</option></select></label>
+          <label>現況の幅員（m）<input id="roadW" type="number" step="0.01" min="0"></label>
+          <label>接道の長さ（m）<input id="frontage" type="number" step="0.01" min="0"></label>
+          <label id="oppWrap">道路の反対側<select id="opp"><option value="normal">宅地など（中心から2m後退）</option><option value="cliff">川・崖など（反対側から4m後退）</option></select></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>計画</legend>
+        <div class="row">
+          <label>構造・防火の性能<select id="taika"><option value="other">その他（木造の防火構造など）</option><option value="jun">準耐火建築物等</option><option value="taika">耐火建築物等</option></select></label>
+          <label>地上階数<input id="floors" type="number" step="1" min="1"></label>
+          <label>建築面積（㎡）<input id="ba" type="number" step="0.01" min="0"></label>
+          <label>延床面積（㎡）<input id="fa" type="number" step="0.01" min="0"></label>
+          <label>うち車庫の床面積（㎡）<input id="garage" type="number" step="0.01" min="0"></label>
+          <label>最高の高さ（m）<input id="h" type="number" step="0.01" min="0"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>斜線を確かめる点 <small>図面から距離を拾う</small></legend>
+        <div class="row">
+          <label>道路境界からの後退距離（m）<input id="roadSet" type="number" step="0.01" min="0"></label>
+          <label>その部分の高さ（m）<input id="roadSetH" type="number" step="0.01" min="0"></label>
+          <label>道路境界から最高部まで（m）<input id="roadTop" type="number" step="0.01" min="0"></label>
+          <label>北側境界から最も近い部分まで（m）<input id="northNear" type="number" step="0.01" min="0"></label>
+          <label>その部分の高さ（m）<input id="northNearH" type="number" step="0.01" min="0"></label>
+          <label>北側境界から最高部まで（m）<input id="northTop" type="number" step="0.01" min="0"></label>
+          <label>北側が道路ならその幅員（m）<input id="northRoad" type="number" step="0.01" min="0" placeholder="隣地なら空欄"></label>
+        </div>
+        <p class="hint">後退距離は、道路境界（2項道路はセットバック後の線）から建物の一番近い部分までの距離です。北側の距離は真北方向で測ります。</p>
+      </fieldset>
+    </form>
+
+    <section class="sheet results" id="out" aria-live="polite"></section>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script id="logic">
+const ZONES = {
+  '1tei':{n:'第一種低層住居専用地域',g:'low',ken:[30,40,50,60],yo:[50,60,80,100,150,200]},
+  '2tei':{n:'第二種低層住居専用地域',g:'low',ken:[30,40,50,60],yo:[50,60,80,100,150,200]},
+  'den':{n:'田園住居地域',g:'low',ken:[30,40,50,60],yo:[50,60,80,100,150,200]},
+  '1chu':{n:'第一種中高層住居専用地域',g:'mid',ken:[30,40,50,60],yo:[100,150,200,300,400,500]},
+  '2chu':{n:'第二種中高層住居専用地域',g:'mid',ken:[30,40,50,60],yo:[100,150,200,300,400,500]},
+  '1ju':{n:'第一種住居地域',g:'res',ken:[50,60,80],yo:[100,150,200,300,400,500]},
+  '2ju':{n:'第二種住居地域',g:'res',ken:[50,60,80],yo:[100,150,200,300,400,500]},
+  'junju':{n:'準住居地域',g:'res',ken:[50,60,80],yo:[100,150,200,300,400,500]},
+  'kinsho':{n:'近隣商業地域',g:'com',ken:[60,80],yo:[100,150,200,300,400,500]},
+  'sho':{n:'商業地域',g:'com',ken:[80],yo:[200,300,400,500,600,700,800,900,1000,1100,1200,1300]},
+  'junko':{n:'準工業地域',g:'ind',ken:[50,60,80],yo:[100,150,200,300,400,500]},
+  'ko':{n:'工業地域',g:'ind',ken:[50,60],yo:[100,150,200,300,400]},
+  'kosen':{n:'工業専用地域',g:'ind',ken:[30,40,50,60],yo:[100,150,200,300,400]},
+  'none':{n:'用途地域の指定のない区域',g:'none',ken:[30,40,50,60,70],yo:[50,80,100,200,300,400]},
+};
+const r2 = (x) => Math.round(x * 100) / 100;
+const dn = (x) => Math.floor(x * 100 + 1e-9) / 100; // 上限は切り捨て（安全側）
+const up = (x) => Math.ceil(x * 100 - 1e-9) / 100;  // 除く面積は切り上げ（安全側）
+const fmt = (x, d = 2) => (x == null || !isFinite(x)) ? '—' : Number(x).toLocaleString('ja-JP', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (x) => (x == null || !isFinite(x)) ? '—' : (Math.round(x * 10) / 10).toLocaleString('ja-JP') + '%';
+const isRes = (g) => g === 'low' || g === 'mid' || g === 'res';
+
+// 道路斜線の適用距離（法別表第3）。容積率は道路幅員の制限を反映した限度で引く
+function applyDistance(g, yo) {
+  if (isRes(g)) return yo <= 200 ? 20 : yo <= 300 ? 25 : yo <= 400 ? 30 : 35;
+  if (g === 'com') return yo <= 400 ? 20 : yo <= 600 ? 25 : yo <= 800 ? 30 : yo <= 1000 ? 35 : yo <= 1100 ? 40 : yo <= 1200 ? 45 : 50;
+  return yo <= 200 ? 20 : yo <= 300 ? 25 : 30;
+}
+
+function evaluate(v) {
+  const z = ZONES[v.zone]; const g = z.g; const out = { checks: [], todo: [], key: {} };
+  const add = (st, title, law, vals, formula) => out.checks.push({ st, title, law, vals, formula });
+  const n = (x) => (x === '' || x == null || !isFinite(Number(x))) ? null : Number(x);
+
+  // 道路と敷地（法42条2項・43条）
+  const W0 = n(v.roadW), L = n(v.frontage), site = n(v.site);
+  let setback = 0, W = W0;
+  if (v.roadType === '2') {
+    W = 4;
+    if (W0 != null) setback = v.opp === 'cliff' ? Math.max(0, 4 - W0) : Math.max(0, 2 - W0 / 2);
+  }
+  const setArea = L != null ? up(setback * L) : 0;
+  const eff = site != null ? r2(site - setArea) : null;
+  out.key = { setback: r2(setback), setArea, eff, W };
+  if (v.roadType === '2') {
+    add('warn', '2項道路のセットバック', '法42条2項',
+      `後退 ${fmt(setback)}m × 接道 ${fmt(L)}m ＝ ${fmt(setArea)}㎡（敷地面積から除く）`,
+      v.opp === 'cliff' ? `反対側が川・崖等：4m − 現況${fmt(W0)}m` : `道路中心から2m：2m − 現況${fmt(W0)}m ÷ 2`);
+  } else if (W0 != null && W0 < 4) {
+    add('ng', '前面道路の幅員', '法42条1項', `現況 ${fmt(W0)}m`, '1項道路は4m以上。4m未満なら2項道路かどうかを役所で確認');
+  }
+  if (L != null) add(L >= 2 ? 'ok' : 'ng', '接道の長さ', '法43条', `${fmt(L)}m ／ 必要 2.00m以上`, '道路に2m以上接していること（条例で延長されることがある）');
+
+  // 建蔽率（法53条）
+  const ken0 = Number(v.kenpei); let ken = ken0; const plus = [];
+  const fireBonus = (v.bouka === 'bouka' && v.taika === 'taika') || (v.bouka === 'jun' && (v.taika === 'taika' || v.taika === 'jun'));
+  let unlimited = false;
+  if (ken0 === 80 && v.bouka === 'bouka' && v.taika === 'taika') { unlimited = true; plus.push('指定80%の防火地域内で耐火建築物等＝制限なし（法53条6項）'); }
+  else {
+    if (fireBonus) { ken += 10; plus.push(v.bouka === 'bouka' ? '防火地域内の耐火建築物等 +10%' : '準防火地域内の耐火・準耐火建築物等 +10%'); }
+    if (v.kado) { ken += 10; plus.push('角地 +10%'); }
+  }
+  const ba = n(v.ba);
+  const baMax = unlimited ? (eff ?? null) : (eff != null ? dn(eff * ken / 100) : null);
+  out.key.ken = unlimited ? 100 : ken; out.key.baMax = baMax;
+  if (ba != null && eff) {
+    add(ba <= baMax + 1e-9 ? 'ok' : 'ng', '建蔽率', '法53条',
+      `建築面積 ${fmt(ba)}㎡ ／ 上限 ${fmt(baMax)}㎡（実 ${pct(ba / eff * 100)}）`,
+      `${fmt(eff)}㎡ × ${unlimited ? '100' : ken}%（指定${ken0}%${plus.length ? '・' + plus.join('・') : ''}）`);
+  }
+
+  // 容積率（法52条）
+  const yo0 = Number(v.yoseki);
+  const coef = v.coef === 'auto' ? (isRes(g) ? 0.4 : 0.6) : Number(v.coef);
+  const roadLimit = W != null && W < 12 ? r2(W * coef * 100) : null;
+  const yo = roadLimit != null ? Math.min(yo0, roadLimit) : yo0;
+  const fa = n(v.fa), gar = n(v.garage) || 0;
+  const garEx = fa != null ? Math.min(gar, fa / 5) : 0;
+  const faCount = fa != null ? r2(fa - garEx) : null;
+  const faMax = eff != null ? dn(eff * yo / 100) : null;
+  out.key.yo = yo; out.key.faMax = faMax;
+  if (faCount != null && eff) {
+    add(faCount <= faMax + 1e-9 ? 'ok' : 'ng', '容積率', '法52条1項・2項',
+      `容積対象 ${fmt(faCount)}㎡ ／ 上限 ${fmt(faMax)}㎡（実 ${pct(faCount / eff * 100)}）`,
+      `限度＝指定${yo0}%と道路${roadLimit != null ? `${fmt(W)}m × ${coef} ＝ ${pct(roadLimit)}` : '12m以上で制限なし'}の小さい方 ${pct(yo)}。${fmt(eff)}㎡ × ${pct(yo)}`);
+    if (gar > 0) add('ok', '車庫の不算入', '令2条1項4号・3項', `車庫 ${fmt(gar)}㎡ のうち ${fmt(garEx)}㎡ を除外`, `延床 ${fmt(fa)}㎡ × 1/5 ＝ ${fmt(fa / 5)}㎡ まで不算入`);
+  }
+
+  // 敷地面積の最低限度（法53条の2）・外壁後退（法54条）
+  const minSite = n(v.minSite);
+  if (minSite != null && site != null) add(site >= minSite ? 'ok' : 'ng', '敷地面積の最低限度', '法53条の2', `${fmt(site)}㎡ ／ 最低 ${fmt(minSite)}㎡`, '既存の敷地には特例がある。不足なら役所で確認');
+  const gaiheki = n(v.gaiheki);
+  if (gaiheki != null) add('warn', '外壁の後退距離', '法54条', `外壁・柱を境界から ${fmt(gaiheki, 1)}m 以上離す`, '物置・出窓などの緩和は図面で確認');
+
+  // 絶対高さ（法55条）
+  const H = n(v.h);
+  if (g === 'low') {
+    const lim = Number(v.absH);
+    if (H != null) add(H <= lim ? 'ok' : 'ng', '絶対高さ', '法55条', `${fmt(H)}m ／ 限度 ${fmt(lim)}m`, `${z.n}は${lim}m`);
+  }
+
+  // 道路斜線（法56条1項1号・2項・別表第3）
+  const slope = isRes(g) ? 1.25 : g === 'none' ? Number(v.slopeNone) : 1.5;
+  const ad = applyDistance(g, yo);
+  const a = n(v.roadSet), ah = n(v.roadSetH), top = n(v.roadTop);
+  out.key.ad = ad; out.key.slope = slope;
+  if (a != null && W != null) {
+    const pts = [];
+    if (ah != null) pts.push(['道路に最も近い部分', a, ah]);
+    if (top != null && H != null) pts.push(['最高部', top, H]);
+    for (const [lab, x, hh] of pts) {
+      const dist = W + a + x;
+      if (dist > ad) { add('na', `道路斜線（${lab}）`, '法56条1項1号・別表第3', `水平距離 ${fmt(dist)}m ＞ 適用距離 ${ad}m`, '適用距離の外なので制限なし'); continue; }
+      const lim = dn(slope * dist);
+      add(hh <= lim + 1e-9 ? 'ok' : 'ng', `道路斜線（${lab}）`, '法56条1項1号・2項',
+        `高さ ${fmt(hh)}m ／ 限度 ${fmt(lim)}m`,
+        `${slope} ×（幅員${fmt(W)} ＋ 後退${fmt(a)} ＋ 境界から${fmt(x)}）＝ ${slope} × ${fmt(dist)}m。適用距離 ${ad}m`);
+    }
+  }
+
+  // 隣地斜線（法56条1項2号）
+  if (g !== 'low' && H != null) {
+    const base = isRes(g) ? 20 : 31;
+    add(H <= base ? 'ok' : 'warn', '隣地斜線', '法56条1項2号', `${fmt(H)}m ／ 立ち上がり ${base}m`, H <= base ? `${base}m以下なので斜線にかからない` : `${base}m を超える部分は ${isRes(g) ? 1.25 : 2.5} の勾配で確認が必要`);
+  }
+
+  // 北側斜線（法56条1項3号）
+  const nr = n(v.northRoad) || 0;
+  if (g === 'low' || g === 'mid') {
+    const base = g === 'low' ? 5 : 10;
+    if (g === 'mid' && v.nichiei) {
+      add('na', '北側斜線', '法56条1項3号', '日影規制の対象区域は適用除外', '代わりに日影規制（法56条の2）の確認が必要');
+    } else {
+      const pts = [];
+      if (n(v.northNear) != null && n(v.northNearH) != null) pts.push(['最も近い部分', n(v.northNear), n(v.northNearH)]);
+      if (n(v.northTop) != null && H != null) pts.push(['最高部', n(v.northTop), H]);
+      for (const [lab, d, hh] of pts) {
+        const lim = dn(base + 1.25 * (d + nr));
+        add(hh <= lim + 1e-9 ? 'ok' : 'ng', `北側斜線（${lab}）`, '法56条1項3号',
+          `高さ ${fmt(hh)}m ／ 限度 ${fmt(lim)}m`,
+          `${base}m ＋ 1.25 ×（北側境界から${fmt(d)}${nr ? ` ＋ 道路幅員${fmt(nr)}` : ''}）`);
+      }
+    }
+  }
+
+  // 防火（法61条・62条・22条）
+  const fl = n(v.floors);
+  if (fl != null && fa != null) {
+    let need = 'other', why = '';
+    if (v.bouka === 'bouka') { need = (fl >= 3 || fa > 100) ? 'taika' : 'jun'; why = '防火地域：3階以上または100㎡超は耐火建築物等、それ以外は準耐火建築物等'; }
+    else if (v.bouka === 'jun') {
+      if (fl >= 4 || fa > 1500) need = 'taika'; else if (fl === 3 || fa > 500) need = 'jun';
+      why = '準防火地域：4階以上または1,500㎡超は耐火、3階または500㎡超は準耐火、2階以下500㎡以下は外壁・軒裏の延焼のおそれのある部分を防火構造＋開口部に防火設備';
+    } else if (v.bouka === '22') why = '法22条区域：屋根を不燃材料などに。木造は外壁の延焼のおそれのある部分を準防火性能に（法23条）';
+    else why = '防火の指定なし';
+    const rank = { other: 0, jun: 1, taika: 2 };
+    const label = { other: 'その他（防火構造など）', jun: '準耐火建築物等', taika: '耐火建築物等' };
+    add(rank[v.taika] >= rank[need] ? 'ok' : 'ng', '防火の性能', v.bouka === 'bouka' || v.bouka === 'jun' ? '法61条・令136条の2' : '法22条・23条',
+      `必要：${label[need]} ／ 計画：${label[v.taika]}`, why);
+  }
+
+  // 役所・現地で確かめること（条件から決まるもの）
+  const T = out.todo;
+  if (v.roadType === '2') T.push(['2項道路の中心線と後退位置', '道路の中心線は役所の判断。後退部分の扱い（寄付・非課税申請）も確認']);
+  if (v.kado) T.push(['角地の指定', '特定行政庁の基準（角度・道路幅員）を満たすか細則で確認']);
+  if (v.koudo !== 'none') T.push(['高度地区の制限', '北側の斜線や最高高さは自治体ごとに数値が違う。このシートでは判定していない']);
+  if (v.nichiei || g === 'mid') T.push(['日影規制', '対象建築物（軒高7m超・3階以上など）と測定面・時間を確認。このシートでは計算していない']);
+  if (g === 'none') T.push(['道路斜線の勾配・容積の係数', '用途地域の指定がない区域は特定行政庁が決める']);
+  if (W != null && W < 12 && !isRes(g)) T.push(['特定道路による緩和', '幅員15m以上の道路が近くにあれば容積率が緩和される場合がある']);
+  T.push(['地区計画・建築協定・景観計画', '敷地の制限、垣・柵、色、高さの上乗せがないか']);
+  T.push(['がけ条例・土砂災害の区域', '敷地の周りに2mを超える高低差があるか']);
+  T.push(['上下水道・ガスの引込み', '前面道路の本管の位置と口径、引込みの負担金']);
+  T.push(['埋蔵文化財の包蔵地', '該当すれば届出と試掘の日数を工程に入れる']);
+  return out;
+}
+if (typeof module !== 'undefined') module.exports = { evaluate, ZONES, applyDistance };
+</script>
+
+<script>
+const SAMPLE = {
+  name:'【サンプル】○○市 S様邸 新築工事', zone:'1tei', kenpei:'50', yoseki:'100', bouka:'jun', site:'150', absH:'10', koudo:'none',
+  minSite:'', gaiheki:'', kado:false, nichiei:false, coef:'auto', slopeNone:'1.25',
+  roadType:'2', roadW:'3.6', frontage:'10', opp:'normal',
+  taika:'other', floors:'2', ba:'70', fa:'115', garage:'15', h:'8.5',
+  roadSet:'2', roadSetH:'6.2', roadTop:'5.5', northNear:'1.5', northNearH:'6.2', northTop:'4', northRoad:''
+};
+const EMPTY = Object.fromEntries(Object.entries(SAMPLE).map(([k, v]) => [k, typeof v === 'boolean' ? false : '']));
+Object.assign(EMPTY, { zone:'1tei', kenpei:'50', yoseki:'100', bouka:'jun', absH:'10', koudo:'none', coef:'auto', slopeNone:'1.25', roadType:'1', opp:'normal', taika:'other' });
+const $ = (id) => document.getElementById(id);
+const KEYS = Object.keys(SAMPLE);
+const LS = 'hoki-check-v1';
+let isSample = true;
+
+function fillSelect(sel, arr, val, keepOdd = false) {
+  const odd = keepOdd && val !== '' && val != null && isFinite(Number(val)) && !arr.includes(Number(val));
+  sel.innerHTML = arr.map((x) => `<option value="${x}">${x}%</option>`).join('') + (odd ? `<option value="${Number(val)}">${Number(val)}%（一般的な指定値にない）</option>` : '');
+  sel.value = arr.includes(Number(val)) || odd ? String(Number(val)) : String(arr[Math.min(1, arr.length - 1)]);
+}
+$('zone').innerHTML = Object.entries(ZONES).map(([k, z]) => `<option value="${k}">${z.n}</option>`).join('');
+
+function setForm(d, keepOdd = false) {
+  $('zone').value = d.zone;
+  fillSelect($('kenpei'), ZONES[d.zone].ken, d.kenpei, keepOdd);
+  fillSelect($('yoseki'), ZONES[d.zone].yo, d.yoseki, keepOdd);
+  for (const k of KEYS) { if (k === 'zone' || k === 'kenpei' || k === 'yoseki') continue; const el = $(k); if (el.type === 'checkbox') el.checked = !!d[k]; else el.value = d[k]; }
+}
+function getForm() { const d = {}; for (const k of KEYS) { const el = $(k); d[k] = el.type === 'checkbox' ? el.checked : el.value; } return d; }
+
+const ST = { ok:['適合','p-ok'], ng:['不適合','p-ng'], warn:['要確認','p-warn'], na:['適用外','p-na'] };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+let last = null;
+const pending = new Map(); // id -> {src, conf}
+let found = [];
+function render() {
+  const d = getForm();
+  const z = ZONES[d.zone];
+  $('slopeWrap').hidden = z.g !== 'none';
+  $('absH').closest('label').hidden = z.g !== 'low';
+  $('oppWrap').hidden = d.roadType !== '2';
+  const r = evaluate(d); last = { d, r };
+  const cnt = { ok:0, ng:0, warn:0, na:0 }; r.checks.forEach((c) => cnt[c.st]++);
+  const k = r.key;
+  $('out').innerHTML = `
+    <h2>判定${pending.size ? '<span class="prov">仮</span>' : ''}</h2>
+    <div class="summary${pending.size ? ' tent' : ''}">
+      <div class="tile t-ng"><span>不適合</span><b>${cnt.ng}</b></div>
+      <div class="tile t-warn"><span>要確認</span><b>${cnt.warn}</b></div>
+      <div class="tile t-ok"><span>適合</span><b>${cnt.ok}</b></div>
+      <div class="tile t-na"><span>適用外</span><b>${cnt.na}</b></div>
+    </div>
+    <div class="key">
+      <div><span>有効な敷地面積</span><b>${fmt(k.eff)}㎡</b></div>
+      <div><span>建蔽率の上限</span><b>${pct(k.ken)}</b></div>
+      <div><span>建てられる建築面積</span><b>${fmt(k.baMax)}㎡</b></div>
+      <div><span>容積率の限度</span><b>${pct(k.yo)}</b></div>
+      <div><span>容積対象の上限</span><b>${fmt(k.faMax)}㎡</b></div>
+      <div><span>道路斜線</span><b>${k.slope}・${k.ad}m</b></div>
+    </div>
+    <div class="checks">${r.checks.map((c) => `
+      <div class="check"><span class="pill ${ST[c.st][1]}">${ST[c.st][0]}</span>
+        <div><h3>${esc(c.title)} <small>${esc(c.law)}</small></h3>
+        <div class="vals">${esc(c.vals)}</div><div class="formula">${esc(c.formula)}</div></div></div>`).join('')}</div>
+    ${found.length ? `<h2>資料に書かれていた注意点</h2><ul class="found">${found.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    <h2>役所・現地で確かめること</h2>
+    <ol class="todo">${r.todo.map(([t, s]) => `<li>${esc(t)}<br><small>${esc(s)}</small></li>`).join('')}</ol>
+    <div class="foot">
+      <p>このシートが扱わないもの：天空率、日影の計算、高度地区の数値、自治体の条例。結果は設計の検討用で、確認申請の代わりにはなりません。</p>
+      <p>道路斜線の適用距離は建築基準法 別表第3、容積率の係数は法52条2項の原則値です。特定行政庁が別に定める区域では数値が変わります。</p>
+    </div>`;
+  try { localStorage.setItem(LS, JSON.stringify({ d, isSample })); } catch (e) {}
+}
+
+$('zone').addEventListener('change', () => { const z = ZONES[$('zone').value]; fillSelect($('kenpei'), z.ken, $('kenpei').value); fillSelect($('yoseki'), z.yo, $('yoseki').value); });
+$('f').addEventListener('input', (e) => { unmark(e.target.id); if (isSample) { isSample = false; $('sampleNote').hidden = true; } render(); });
+$('f').addEventListener('change', (e) => { unmark(e.target.id); if (isSample) { isSample = false; $('sampleNote').hidden = true; } render(); });
+$('f').addEventListener('submit', (e) => e.preventDefault());
+$('btnSample').addEventListener('click', () => { clearMarks(); isSample = true; $('sampleNote').hidden = false; setForm(SAMPLE); render(); });
+$('btnClear').addEventListener('click', () => { clearMarks(); isSample = false; $('sampleNote').hidden = true; setForm(EMPTY); render(); });
+
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2200); }
+$('btnCopy').addEventListener('click', () => {
+  const { d, r } = last; const ST2 = { ok:'適合', ng:'不適合', warn:'要確認', na:'適用外' };
+  const text = [`■ ${d.name || '（案件名なし）'}  敷地・法規チェック`, `${ZONES[d.zone].n}／建蔽率${d.kenpei}%／容積率${d.yoseki}%`, '',
+    ...r.checks.map((c) => `[${ST2[c.st]}] ${c.title}（${c.law}）\n  ${c.vals}\n  ${c.formula}`), '', '■ 役所・現地で確かめること',
+    ...r.todo.map(([t, s]) => `・${t}：${s}`)].join('\n');
+  navigator.clipboard.writeText(text).then(() => toast('結果をコピーしました'), () => {
+    let ta = $('copybox'); if (!ta) { ta = document.createElement('textarea'); ta.id = 'copybox'; $('out').appendChild(ta); }
+    ta.value = text; ta.select(); toast('自動でコピーできませんでした。下の欄を選択してコピーしてください');
+  });
+});
+
+/* ---------- 資料からの読み取り ---------- */
+const AI_FIELDS = {
+  name: '案件名（物件名や所在地。分かれば）', zone: '用途地域（キーで）', kenpei: '指定建蔽率（%の数値）', yoseki: '指定容積率（%の数値）',
+  bouka: '防火の指定（bouka=防火地域／jun=準防火地域／22=法22条区域／none=指定なし）', site: '敷地面積（㎡。実測があれば実測、なければ公簿と明記）',
+  absH: '絶対高さの限度（10か12。低層住居系のみ）', koudo: '高度地区（none／1／2／3／other）', minSite: '敷地面積の最低限度（㎡）',
+  gaiheki: '外壁後退の距離（m）', kado: '角地の指定（true/false）', nichiei: '日影規制の対象区域（true/false）',
+  roadType: '前面道路の種別（1=42条1項道路など4m以上／2=42条2項道路）', roadW: '前面道路の現況幅員（m。複数あれば最大のもの）', frontage: '接道の長さ（m）',
+  opp: '2項道路の反対側（normal=宅地など／cliff=川・崖など）', taika: '計画の構造（other／jun=準耐火建築物等／taika=耐火建築物等）', floors: '地上階数',
+  ba: '建築面積（㎡）', fa: '延床面積（㎡）', garage: 'うち車庫の床面積（㎡）', h: '最高の高さ（m）',
+};
+const ZONE_KEYS = Object.entries(ZONES).map(([k, z]) => `${k}=${z.n}`).join('／');
+const DEMO_DOC = `【サンプル】重要事項説明書（抜粋）
+物件の表示：埼玉県○○市△△町二丁目　地番1234番5　地目 宅地
+土地面積：公簿 152.34㎡　実測 150.12㎡（令和8年9月 測量）
+都市計画区域：市街化区域
+用途地域：第一種低層住居専用地域　建蔽率 50％　容積率 100％
+防火・準防火地域：準防火地域
+高度地区：なし　外壁の後退距離：1.0m　建築物の敷地面積の最低限度：125㎡
+絶対高さの制限：10m　日影規制：あり（軒の高さ7m超または地上3階以上の建築物）
+地区計画：なし　建築協定：なし
+敷地と道路の関係：南側 公道（市道第3021号線）幅員 約3.6m　建築基準法第42条第2項道路　接道 約10.20m
+　道路中心線から2mの後退が必要。後退部分は道路として使用し、建築できません。
+角地緩和：該当なし
+私道負担：なし　上水道：公営（前面道路 φ75mm）　下水道：公共下水（前面道路に本管あり）
+その他：北側隣地との高低差 約1.2m（擁壁あり・検査済証の有無は不明）。周知の埋蔵文化財包蔵地に該当しない。`;
+
+let sample = null, sCaps = null;
+const files = [];
+(async () => {
+  try { sample = await window.claude?.use?.('sample'); } catch (e) { sample = null; }
+  if (sample) { sCaps = await sample.limits().catch(() => null); }
+  else { $('rstatus').textContent = 'この画面では資料の読み取りを使えません。claude.ai でこのページを開くと使えます。入力欄は手で使えます。'; $('btnRead').disabled = true; $('btnDemo').disabled = true; }
+})();
+
+function showNames() {
+  $('names').textContent = files.length ? files.map((f) => f.name).join('、') : 'ここにファイルをドロップできます。複数まとめてどうぞ。';
+  $('btnRead').disabled = !files.length || !sample;
+}
+function addFiles(list) { for (const f of list) if (/\.(pdf|jpe?g|png|webp)$/i.test(f.name) || /^image\//.test(f.type)) files.push(f); showNames(); }
+$('btnPick').addEventListener('click', () => $('fileIn').click());
+$('fileIn').addEventListener('change', () => { addFiles([...$('fileIn').files]); $('fileIn').value = ''; });
+$('btnFilesClear').addEventListener('click', () => { files.length = 0; showNames(); });
+const drop = $('drop');
+drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
+
+// PDFは文字を取り出す。文字が少ないページ（スキャン）だけ画像にして送る
+async function readDocs(list) {
+  const texts = [], images = [];
+  for (const f of list) {
+    try {
+      if (/\.pdf$/i.test(f.name)) {
+        if (!window.pdfjsLib) { texts.push(`【${f.name}】PDFを開けませんでした`); continue; }
+        const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+        const max = Math.min(pdf.numPages, 8);
+        for (let i = 1; i <= max; i++) {
+          const p = await pdf.getPage(i);
+          const tc = await p.getTextContent().catch(() => null);
+          const t = tc ? tc.items.map((x) => x.str).join(' ').replace(/\s+/g, ' ').trim() : '';
+          if (t.length >= 80) texts.push(`【${f.name} ${i}ページ】\n${t.slice(0, 6000)}`);
+          else {
+            const vp0 = p.getViewport({ scale: 1 }), sc = Math.min(2.4, 1800 / Math.max(vp0.width, vp0.height));
+            const vp = p.getViewport({ scale: sc }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+            await p.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+            images.push({ blob: await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.88)), label: `${f.name} ${i}ページ（画像）` });
+          }
+        }
+        if (pdf.numPages > max) texts.push(`【${f.name}】${pdf.numPages}ページ中、先頭${max}ページだけ読みました`);
+      } else images.push({ blob: f, label: f.name });
+    } catch (e) { texts.push(`【${f.name}】読み込めませんでした`); }
+  }
+  return { texts, images };
+}
+
+const ERR = { not_granted: 'AIの利用が許可されていません。', sampling_disabled: 'このアカウントではAIを使えません。', rate_limited: '利用が集中しています。少し時間をおいてもう一度押してください。',
+  session_expired: 'claude.ai にもう一度ログインしてください。', image_rejected: '画像を読めませんでした。別のファイルを試してください。', prompt_too_large: '資料が大きすぎます。必要なページだけにしてください。',
+  refused: 'この資料は読み取れませんでした。', invalid_json: '結果をうまく受け取れませんでした。もう一度押してください。', images_unavailable: 'この画面では画像を送れません。PDFの文字だけで読み取ります。', empty_completion: '結果が空でした。資料を見直してください。' };
+
+function buildPrompt(texts, imgLabels) {
+  return `あなたは住宅の設計者の補助です。添付の資料（重要事項説明書・調査報告書・図面など）から、法規チェックに必要な数字と条件を読み取ってください。
+推測で埋めないこと。資料に書かれていない項目は出さない。表記ゆれ（「建ぺい率」「建蔽率」など）は同じものとして扱う。
+用途地域は次のキーで答える：${ZONE_KEYS}
+読み取る項目（キー：説明）
+${Object.entries(AI_FIELDS).map(([k, v]) => `- ${k}：${v}`).join('\n')}
+
+次のJSONだけで答える：
+{"fields":{"<キー>":{"value":"値（数値は単位なしの数字、真偽はtrue/false）","source":"資料名とページ","quote":"根拠の原文を30字以内","confidence":"high|low"}},
+ "conflicts":[{"field":"<キー>","candidates":[{"value":"値","source":"資料名とページ"}],"note":"どう違うか"}],
+ "notes":["法規チェックや役所調査に関係する、資料に書かれていた注意点（高低差・擁壁・地区計画・私道・上下水道など）を1行ずつ、最大8件"]}
+資料どうしで値が違う項目は fields に入れず conflicts に入れる。敷地面積で実測と公簿がある場合は実測を value にし、quote に公簿の値も書く。
+${imgLabels.length ? `\n添付画像：${imgLabels.join('、')}\n` : ''}
+--- 資料の文字 ---
+${texts.join('\n\n').slice(0, 60000) || '（文字なし。画像を見て読み取ること）'}`;
+}
+
+const SELECTS = new Set(['zone', 'kenpei', 'yoseki', 'bouka', 'absH', 'koudo', 'roadType', 'opp', 'taika']);
+const ENUM = { bouka: ['bouka', 'jun', '22', 'none'], absH: ['10', '12'], koudo: ['none', '1', '2', '3', 'other'], roadType: ['1', '2'], opp: ['normal', 'cliff'], taika: ['other', 'jun', 'taika'] };
+function normVal(k, v) {
+  if (k === 'kado' || k === 'nichiei') return v === true || v === 'true';
+  let s = String(v ?? '').trim();
+  if (k === 'zone') { if (ZONES[s]) return s; const hit = Object.entries(ZONES).find(([, z]) => s.includes(z.n)); return hit ? hit[0] : null; }
+  if (ENUM[k]) return ENUM[k].includes(s) ? s : null;
+  if (k === 'name') return s.slice(0, 80) || null;
+  const n = Number(s.replace(/[,，㎡m%％約\s]/g, ''));
+  return isFinite(n) && s !== '' ? String(n) : null;
+}
+
+let ctl = null;
+async function runRead(useDemo) {
+  if (!sample) return;
+  const st = $('rstatus'); st.className = 'status';
+  $('btnRead').disabled = true; $('btnDemo').disabled = true; $('btnStop').hidden = false;
+  try {
+    st.textContent = '資料を開いています…';
+    const { texts, images } = useDemo ? { texts: [`【サンプル重説 1ページ】\n${DEMO_DOC}`], images: [] } : await readDocs(files);
+    let imgs = images;
+    const maxImg = sCaps?.images?.maxCount ?? 0;
+    if (imgs.length && !maxImg) { imgs = []; st.textContent = 'この画面では画像を送れないため、PDFの文字だけで読み取ります。'; }
+    const extra = imgs.length > maxImg ? imgs.length - maxImg : 0; imgs = imgs.slice(0, maxImg);
+    if (!texts.length && !imgs.length) { st.className = 'status err'; st.textContent = '読み取れる文字や画像がありませんでした。'; return; }
+    ctl = new AbortController();
+    st.textContent = 'AIが資料を読んでいます…（30秒〜1分ほど）';
+    const opts = { signal: ctl.signal, onText: ({ text }) => { st.textContent = `結果を受け取っています…（${text.length}文字）`; } };
+    if (imgs.length) opts.images = imgs.map((x) => x.blob);
+    const r = await sample.json(buildPrompt(texts, imgs.map((x) => x.label)), opts);
+    applyRead(r || {});
+    const n = pending.size, c = (r?.conflicts || []).length;
+    st.textContent = `${n}項目を入力しました${c ? `。資料どうしで食い違う項目が${c}件あります（下の黄色の欄）` : ''}${extra ? `。画像は先頭${maxImg}枚だけ送りました` : ''}。`;
+    if (useDemo) { isSample = false; $('sampleNote').hidden = true; }
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e?.code === 'cancelled' ? '止めました。' : (ERR[e?.code] || 'うまくいきませんでした。もう一度押してください。');
+  } finally { $('btnStop').hidden = true; $('btnDemo').disabled = !sample; showNames(); }
+}
+$('btnRead').addEventListener('click', () => runRead(false));
+$('btnDemo').addEventListener('click', () => runRead(true));
+$('btnStop').addEventListener('click', () => ctl?.abort());
+
+let conflicts = [];
+function applyRead(r) {
+  clearMarks(); conflicts = []; found = Array.isArray(r.notes) ? r.notes.map(String).slice(0, 8) : [];
+  const d = getForm(); const marks = [];
+  const fields = r.fields || {};
+  if (fields.zone) { const z = normVal('zone', fields.zone.value); if (z) { d.zone = z; marks.push(['zone', fields.zone]); } }
+  for (const [k, f] of Object.entries(fields)) {
+    if (k === 'zone' || !(k in AI_FIELDS) || !f) continue;
+    const v = normVal(k, f.value); if (v == null) continue;
+    d[k] = v; marks.push([k, f]);
+  }
+  setForm(d, true);
+  for (const [k, f] of marks) mark(k, `${f.source || '資料'}${f.quote ? `「${f.quote}」` : ''}`, f.confidence === 'low');
+  for (const c of r.conflicts || []) {
+    const k = String(c.field || ''); if (!(k in AI_FIELDS)) continue;
+    const cands = (c.candidates || []).map((x) => `${x.value}（${x.source || '資料'}）`).join(' ／ ');
+    mark(k, `食い違い：${cands}${c.note ? `。${c.note}` : ''}`, true);
+    conflicts.push(k);
+  }
+  render();
+}
+function mark(id, text, low) {
+  const el = $(id); if (!el) return; const lab = el.closest('label'); if (!lab) return;
+  lab.classList.add('ai'); let s = lab.querySelector('.src');
+  if (!s) { s = document.createElement('span'); s.className = 'src'; lab.appendChild(s); }
+  s.textContent = '読取：' + text; s.classList.toggle('conf-low', !!low);
+  pending.set(id, text); updateBar();
+}
+function unmark(id) {
+  if (!pending.has(id)) return; const lab = $(id).closest('label');
+  lab.classList.remove('ai'); lab.querySelector('.src')?.remove(); pending.delete(id); updateBar();
+}
+function clearMarks() { for (const id of [...pending.keys()]) unmark(id); found = []; conflicts = []; }
+function updateBar() {
+  $('confirmBar').hidden = !pending.size;
+  $('confirmText').textContent = `AIが読み取った値が${pending.size}項目あります（青い欄）。資料と見比べてから確認済みにしてください。それまで判定は「仮」です。値を手で直した欄は確認済みになります。`;
+}
+$('btnConfirm').addEventListener('click', () => { for (const id of [...pending.keys()]) unmark(id); render(); toast('確認済みにしました'); });
+
+let start = SAMPLE;
+try { const s = JSON.parse(localStorage.getItem(LS) || 'null'); if (s && s.d && s.d.zone && !s.isSample) { start = s.d; isSample = false; $('sampleNote').hidden = true; } } catch (e) {}
+setForm(start); render();
+</script>
+
+</body></html>
