@@ -98,6 +98,13 @@ h2{font-family:var(--f-display);font-size:17px;margin:0}
 .conflicts{display:flex;flex-direction:column;gap:6px;font-size:13px}
 .conflicts div{border-left:3px solid var(--warn);padding-left:8px}
 .found{margin:0;padding-left:1.3em;font-size:13px}
+.row>.wide{grid-column:1/-1}
+.munibar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.munibar select{flex:1 1 200px;width:auto}
+.kdrow{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2)}
+.kdhint{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0}
+textarea{resize:vertical}
+.memo{white-space:pre-wrap;font-size:13px;border-left:3px solid var(--ink);padding-left:10px;margin:0}
 @media (max-width:520px){.summary{grid-template-columns:repeat(2,1fr)} h1{font-size:22px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -162,6 +169,8 @@ h2{font-family:var(--f-display);font-size:17px;margin:0}
           <label>高度地区<select id="koudo"><option value="none">なし</option><option value="1">第1種高度地区</option><option value="2">第2種高度地区</option><option value="3">第3種高度地区</option><option value="other">その他（最高限度など）</option></select></label>
           <label>敷地面積の最低限度（㎡）<input id="minSite" type="number" step="0.01" min="0" placeholder="定めなし"></label>
           <label>外壁後退の距離（m）<input id="gaiheki" type="number" step="0.1" min="0" placeholder="定めなし"></label>
+          <label>敷地まわりの高低差（m）<input id="gakeH" type="number" step="0.1" min="0" placeholder="なければ空欄"></label>
+          <label>建物からがけ・擁壁までの距離（m）<input id="gakeDist" type="number" step="0.1" min="0"></label>
           <label class="chk"><input id="kado" type="checkbox">角地の指定を受けている</label>
           <label class="chk"><input id="nichiei" type="checkbox">日影規制の対象区域</label>
           <label class="wide">容積率の道路幅員による係数<select id="coef"><option value="auto">用途地域どおり（住居系0.4／その他0.6）</option><option value="0.4">0.4</option><option value="0.6">0.6</option><option value="0.8">0.8</option></select></label>
@@ -175,8 +184,40 @@ h2{font-family:var(--f-display);font-size:17px;margin:0}
           <label>道路の種別<select id="roadType"><option value="1">42条1項道路（4m以上）</option><option value="2">42条2項道路（4m未満）</option></select></label>
           <label>現況の幅員（m）<input id="roadW" type="number" step="0.01" min="0"></label>
           <label>接道の長さ（m）<input id="frontage" type="number" step="0.01" min="0"></label>
+          <label>路地状部分（旗竿）の長さ（m）<input id="flagLen" type="number" step="0.1" min="0" placeholder="旗竿でなければ空欄"></label>
           <label id="oppWrap">道路の反対側<select id="opp"><option value="normal">宅地など（中心から2m後退）</option><option value="cliff">川・崖など（反対側から4m後退）</option></select></label>
         </div>
+      </fieldset>
+
+      <fieldset id="muniBox">
+        <legend>自治体の基準 <small>条例・細則・地区計画の数値。保存して次の案件で呼び出せます</small></legend>
+        <div class="row">
+          <label class="wide">自治体名<input id="muni" type="text" placeholder="例：○○市（第一種低層の区域）"></label>
+          <div class="wide munibar">
+            <select id="muniList" aria-label="保存した自治体"><option value="">保存した自治体を選ぶ</option></select>
+            <button type="button" id="muniLoad">呼び出す</button>
+            <button type="button" id="muniSave">この自治体の基準を保存</button>
+            <button type="button" id="muniDel">削除</button>
+          </div>
+          <label>接道に必要な長さ（m）<input id="frontNeed" type="number" step="0.1" min="0" placeholder="2（法の最低）"></label>
+          <label>地区計画などの最高高さ（m）<input id="chikuMaxH" type="number" step="0.1" min="0" placeholder="定めなし"></label>
+          <label>がけとみなす高さ（m）<input id="gakeTh" type="number" step="0.1" min="0" placeholder="2"></label>
+          <label>がけから離す距離（高さの何倍）<input id="gakeRatio" type="number" step="0.1" min="0" placeholder="2"></label>
+          <label>角敷地の隅切り（底辺 m）<input id="sumikiri" type="number" step="0.1" min="0" placeholder="定めなし"></label>
+          <label class="wide">日影規制の内容<input id="nichieiNote" type="text" placeholder="例：測定面1.5m・5m超3時間／10m超2時間"></label>
+        </div>
+        <div class="row kdrow" id="kdWrap" hidden>
+          <p class="wide hint kdhint">高度地区の数値（北側の斜線）。<button type="button" id="kdTokyo">東京都の第1〜3種の数値を入れる</button></p>
+          <label>立ち上がり（m）<input id="kdBase" type="number" step="0.1" min="0"></label>
+          <label>勾配<input id="kdS1" type="number" step="0.01" min="0"></label>
+          <label>勾配が変わる距離（m）<input id="kdBreak" type="number" step="0.1" min="0" placeholder="変わらなければ空欄"></label>
+          <label>その先の勾配<input id="kdS2" type="number" step="0.01" min="0"></label>
+          <label>高度地区の最高限度（m）<input id="kdMax" type="number" step="0.1" min="0" placeholder="定めなし"></label>
+        </div>
+        <div class="row">
+          <label class="wide">自治体のメモ<textarea id="memo" rows="3" placeholder="細則の独自ルール、窓口、事前協議の要否など"></textarea></label>
+        </div>
+        <p class="hint">同じ市でも用途地域や区域で数値が変わるときは、「○○市（区域名）」のように分けて保存してください。容積率の係数・道路斜線の勾配も一緒に保存されます。</p>
       </fieldset>
 
       <fieldset>
@@ -264,7 +305,12 @@ function evaluate(v) {
   } else if (W0 != null && W0 < 4) {
     add('ng', '前面道路の幅員', '法42条1項', `現況 ${fmt(W0)}m`, '1項道路は4m以上。4m未満なら2項道路かどうかを役所で確認');
   }
-  if (L != null) add(L >= 2 ? 'ok' : 'ng', '接道の長さ', '法43条', `${fmt(L)}m ／ 必要 2.00m以上`, '道路に2m以上接していること（条例で延長されることがある）');
+  const fNeed = Math.max(2, n(v.frontNeed) || 0);
+  if (L != null) add(L >= fNeed ? 'ok' : 'ng', '接道の長さ', fNeed > 2 ? '法43条・条例' : '法43条', `${fmt(L)}m ／ 必要 ${fmt(fNeed)}m以上`,
+    fNeed > 2 ? `自治体の基準で${fmt(fNeed)}m（法の最低は2m）` : '道路に2m以上接していること（条例で延長されることがある）');
+  const flag = n(v.flagLen);
+  if (flag != null && flag > 0) add('warn', '路地状敷地（旗竿）', '条例', `路地状部分 長さ ${fmt(flag, 1)}m ／ 幅 ${fmt(L)}m`,
+    '長さに応じて必要な幅が決まる（例：東京都安全条例 20m以下2m・20m超3m）。自治体の基準を「接道に必要な長さ」に入れて判定');
 
   // 建蔽率（法53条）
   const ken0 = Number(v.kenpei); let ken = ken0; const plus = [];
@@ -313,6 +359,45 @@ function evaluate(v) {
     const lim = Number(v.absH);
     if (H != null) add(H <= lim ? 'ok' : 'ng', '絶対高さ', '法55条', `${fmt(H)}m ／ 限度 ${fmt(lim)}m`, `${z.n}は${lim}m`);
   }
+
+  // 地区計画などの最高高さ・高度地区（都市計画法・法58条）
+  const cMax = n(v.chikuMaxH);
+  if (cMax != null && H != null) add(H <= cMax ? 'ok' : 'ng', '地区計画などの最高高さ', '法68条の2・条例', `${fmt(H)}m ／ 限度 ${fmt(cMax)}m`, '自治体の基準に入れた数値');
+  const kdMax = n(v.kdMax);
+  if (v.koudo !== 'none' && kdMax != null && H != null) add(H <= kdMax ? 'ok' : 'ng', '高度地区の最高限度', '法58条', `${fmt(H)}m ／ 限度 ${fmt(kdMax)}m`, '自治体の基準に入れた数値');
+  const kB = n(v.kdBase), kS1 = n(v.kdS1), kBr = n(v.kdBreak), kS2 = n(v.kdS2);
+  if (v.koudo !== 'none' && kB != null && kS1 != null) {
+    const nr0 = n(v.northRoad) || 0; const pts = [];
+    if (n(v.northNear) != null && n(v.northNearH) != null) pts.push(['最も近い部分', n(v.northNear), n(v.northNearH)]);
+    if (n(v.northTop) != null && H != null) pts.push(['最高部', n(v.northTop), H]);
+    for (const [lab, d0, hh] of pts) {
+      const d = d0 + nr0;
+      const two = kBr != null && kS2 != null && d > kBr;
+      const lim = dn(two ? kB + kS1 * kBr + kS2 * (d - kBr) : kB + kS1 * d);
+      add(hh <= lim + 1e-9 ? 'ok' : 'ng', `高度地区の斜線（${lab}）`, '法58条',
+        `高さ ${fmt(hh)}m ／ 限度 ${fmt(lim)}m`,
+        two ? `${fmt(kB, 1)}m ＋ ${kS1} × ${fmt(kBr, 1)} ＋ ${kS2} ×（${fmt(d)} − ${fmt(kBr, 1)}）。距離は真北方向${nr0 ? '・北側道路の幅員を含む' : ''}`
+            : `${fmt(kB, 1)}m ＋ ${kS1} × ${fmt(d)}m。距離は真北方向${nr0 ? '・北側道路の幅員を含む' : ''}`);
+    }
+  }
+
+  // がけ条例
+  const gH = n(v.gakeH);
+  if (gH != null && gH > 0) {
+    const th = n(v.gakeTh) ?? 2, ratio = n(v.gakeRatio) ?? 2, gD = n(v.gakeDist);
+    if (gH <= th) add('ok', 'がけ（高低差）', 'がけ条例', `高低差 ${fmt(gH, 1)}m ／ がけとみなす ${fmt(th, 1)}m超`, 'がけ条例の対象外（擁壁の検査済証の有無は別に確認）');
+    else {
+      const need = r2(gH * ratio);
+      add(gD != null && gD >= need ? 'ok' : 'warn', 'がけ（高低差）', 'がけ条例',
+        `高低差 ${fmt(gH, 1)}m ／ 離す距離 ${fmt(need)}m${gD != null ? `（計画 ${fmt(gD)}m）` : ''}`,
+        `${fmt(gH, 1)}m × ${ratio}倍。足りない場合は擁壁の安全確認・基礎を深くする・RCの壁にするなど`);
+    }
+  }
+
+  // 角敷地の隅切り
+  const sk = n(v.sumikiri);
+  if (sk != null && sk > 0) add('warn', '角敷地の隅切り', '条例', `底辺 ${fmt(sk, 1)}m の三角形（約 ${fmt(up(sk * sk / 4))}㎡）`,
+    '二等辺三角形として概算。この部分に建物・塀を出さない。敷地面積から除くかは自治体で確認');
 
   // 道路斜線（法56条1項1号・2項・別表第3）
   const slope = isRes(g) ? 1.25 : g === 'none' ? Number(v.slopeNone) : 1.5;
@@ -378,8 +463,9 @@ function evaluate(v) {
   const T = out.todo;
   if (v.roadType === '2') T.push(['2項道路の中心線と後退位置', '道路の中心線は役所の判断。後退部分の扱い（寄付・非課税申請）も確認']);
   if (v.kado) T.push(['角地の指定', '特定行政庁の基準（角度・道路幅員）を満たすか細則で確認']);
-  if (v.koudo !== 'none') T.push(['高度地区の制限', '北側の斜線や最高高さは自治体ごとに数値が違う。このシートでは判定していない']);
-  if (v.nichiei || g === 'mid') T.push(['日影規制', '対象建築物（軒高7m超・3階以上など）と測定面・時間を確認。このシートでは計算していない']);
+  if (v.koudo !== 'none' && (kB == null || kS1 == null)) T.push(['高度地区の制限', '北側の斜線や最高高さは自治体ごとに数値が違う。「自治体の基準」に数値を入れると判定する']);
+  if (v.nichiei || g === 'mid') T.push(['日影規制', `${v.nichieiNote ? `入力：${v.nichieiNote}。` : ''}対象建築物（軒高7m超・3階以上など）と測定面・時間を確認。このシートでは計算していない`]);
+  if (v.muni) T.push([`${v.muni}の独自基準`, '細則・条例の改正日を確認し、保存した数値が今も正しいか見直す']);
   if (g === 'none') T.push(['道路斜線の勾配・容積の係数', '用途地域の指定がない区域は特定行政庁が決める']);
   if (W != null && W < 12 && !isRes(g)) T.push(['特定道路による緩和', '幅員15m以上の道路が近くにあれば容積率が緩和される場合がある']);
   T.push(['地区計画・建築協定・景観計画', '敷地の制限、垣・柵、色、高さの上乗せがないか']);
@@ -397,10 +483,15 @@ const SAMPLE = {
   minSite:'', gaiheki:'', kado:false, nichiei:false, coef:'auto', slopeNone:'1.25',
   roadType:'2', roadW:'3.6', frontage:'10', opp:'normal',
   taika:'other', floors:'2', ba:'70', fa:'115', garage:'15', h:'8.5',
-  roadSet:'2', roadSetH:'6.2', roadTop:'5.5', northNear:'1.5', northNearH:'6.2', northTop:'4', northRoad:''
+  roadSet:'2', roadSetH:'6.2', roadTop:'5.5', northNear:'1.5', northNearH:'6.2', northTop:'4', northRoad:'',
+  gakeH:'1.2', gakeDist:'', flagLen:'',
+  muni:'○○市（第一種低層の区域）', frontNeed:'', chikuMaxH:'', gakeTh:'2', gakeRatio:'2', sumikiri:'', nichieiNote:'測定面1.5m・5m超3時間／10m超2時間',
+  kdBase:'', kdS1:'', kdBreak:'', kdS2:'', kdMax:'', memo:'【サンプル】建築指導課で事前相談。2項道路の後退部分は寄付の申請ができる。'
 };
 const EMPTY = Object.fromEntries(Object.entries(SAMPLE).map(([k, v]) => [k, typeof v === 'boolean' ? false : '']));
-Object.assign(EMPTY, { zone:'1tei', kenpei:'50', yoseki:'100', bouka:'jun', absH:'10', koudo:'none', coef:'auto', slopeNone:'1.25', roadType:'1', opp:'normal', taika:'other' });
+Object.assign(EMPTY, { zone:'1tei', kenpei:'50', yoseki:'100', bouka:'jun', absH:'10', koudo:'none', coef:'auto', slopeNone:'1.25', roadType:'1', opp:'normal', taika:'other', gakeTh:'2', gakeRatio:'2' });
+const MUNI_KEYS = ['muni', 'frontNeed', 'chikuMaxH', 'gakeTh', 'gakeRatio', 'sumikiri', 'nichieiNote', 'kdBase', 'kdS1', 'kdBreak', 'kdS2', 'kdMax', 'memo', 'coef', 'slopeNone'];
+const LS_MUNI = 'hoki-check-munis';
 const $ = (id) => document.getElementById(id);
 const KEYS = Object.keys(SAMPLE);
 const LS = 'hoki-check-v1';
@@ -432,6 +523,8 @@ function render() {
   $('slopeWrap').hidden = z.g !== 'none';
   $('absH').closest('label').hidden = z.g !== 'low';
   $('oppWrap').hidden = d.roadType !== '2';
+  $('kdWrap').hidden = d.koudo === 'none';
+  $('kdTokyo').hidden = !['1', '2', '3'].includes(d.koudo);
   const r = evaluate(d); last = { d, r };
   const cnt = { ok:0, ng:0, warn:0, na:0 }; r.checks.forEach((c) => cnt[c.st]++);
   const k = r.key;
@@ -456,10 +549,11 @@ function render() {
         <div><h3>${esc(c.title)} <small>${esc(c.law)}</small></h3>
         <div class="vals">${esc(c.vals)}</div><div class="formula">${esc(c.formula)}</div></div></div>`).join('')}</div>
     ${found.length ? `<h2>資料に書かれていた注意点</h2><ul class="found">${found.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    ${d.memo ? `<h2>自治体のメモ${d.muni ? `<small>（${esc(d.muni)}）</small>` : ''}</h2><p class="memo">${esc(d.memo)}</p>` : ''}
     <h2>役所・現地で確かめること</h2>
     <ol class="todo">${r.todo.map(([t, s]) => `<li>${esc(t)}<br><small>${esc(s)}</small></li>`).join('')}</ol>
     <div class="foot">
-      <p>このシートが扱わないもの：天空率、日影の計算、高度地区の数値、自治体の条例。結果は設計の検討用で、確認申請の代わりにはなりません。</p>
+      <p>このシートが扱わないもの：天空率、日影の計算。高度地区・条例・地区計画は「自治体の基準」に入れた数値だけで判定します。結果は設計の検討用で、確認申請の代わりにはなりません。</p>
       <p>道路斜線の適用距離は建築基準法 別表第3、容積率の係数は法52条2項の原則値です。特定行政庁が別に定める区域では数値が変わります。</p>
     </div>`;
   try { localStorage.setItem(LS, JSON.stringify({ d, isSample })); } catch (e) {}
@@ -470,14 +564,14 @@ $('f').addEventListener('input', (e) => { unmark(e.target.id); if (isSample) { i
 $('f').addEventListener('change', (e) => { unmark(e.target.id); if (isSample) { isSample = false; $('sampleNote').hidden = true; } render(); });
 $('f').addEventListener('submit', (e) => e.preventDefault());
 $('btnSample').addEventListener('click', () => { clearMarks(); isSample = true; $('sampleNote').hidden = false; setForm(SAMPLE); render(); });
-$('btnClear').addEventListener('click', () => { clearMarks(); isSample = false; $('sampleNote').hidden = true; setForm(EMPTY); render(); });
+$('btnClear').addEventListener('click', () => { const cur = getForm(); clearMarks(); isSample = false; $('sampleNote').hidden = true; setForm({ ...EMPTY, ...Object.fromEntries(MUNI_KEYS.map((k) => [k, cur[k]])) }); render(); toast('案件の数字を消しました（自治体の基準は残しています）'); });
 
 function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2200); }
 $('btnCopy').addEventListener('click', () => {
   const { d, r } = last; const ST2 = { ok:'適合', ng:'不適合', warn:'要確認', na:'適用外' };
-  const text = [`■ ${d.name || '（案件名なし）'}  敷地・法規チェック`, `${ZONES[d.zone].n}／建蔽率${d.kenpei}%／容積率${d.yoseki}%`, '',
+  const text = [`■ ${d.name || '（案件名なし）'}  敷地・法規チェック`, `${d.muni ? d.muni + '／' : ''}${ZONES[d.zone].n}／建蔽率${d.kenpei}%／容積率${d.yoseki}%`, '',
     ...r.checks.map((c) => `[${ST2[c.st]}] ${c.title}（${c.law}）\n  ${c.vals}\n  ${c.formula}`), '', '■ 役所・現地で確かめること',
-    ...r.todo.map(([t, s]) => `・${t}：${s}`)].join('\n');
+    ...r.todo.map(([t, s]) => `・${t}：${s}`), ...(d.memo ? ['', '■ 自治体のメモ', d.memo] : [])].join('\n');
   navigator.clipboard.writeText(text).then(() => toast('結果をコピーしました'), () => {
     let ta = $('copybox'); if (!ta) { ta = document.createElement('textarea'); ta.id = 'copybox'; $('out').appendChild(ta); }
     ta.value = text; ta.select(); toast('自動でコピーできませんでした。下の欄を選択してコピーしてください');
@@ -493,6 +587,7 @@ const AI_FIELDS = {
   roadType: '前面道路の種別（1=42条1項道路など4m以上／2=42条2項道路）', roadW: '前面道路の現況幅員（m。複数あれば最大のもの）', frontage: '接道の長さ（m）',
   opp: '2項道路の反対側（normal=宅地など／cliff=川・崖など）', taika: '計画の構造（other／jun=準耐火建築物等／taika=耐火建築物等）', floors: '地上階数',
   ba: '建築面積（㎡）', fa: '延床面積（㎡）', garage: 'うち車庫の床面積（㎡）', h: '最高の高さ（m）',
+  gakeH: '敷地まわりの高低差（m。擁壁・がけ）', flagLen: '路地状部分（旗竿敷地の通路）の長さ（m）', chikuMaxH: '地区計画などの建物の最高高さ（m）',
 };
 const ZONE_KEYS = Object.entries(ZONES).map(([k, z]) => `${k}=${z.n}`).join('／');
 const DEMO_DOC = `【サンプル】重要事項説明書（抜粋）
@@ -662,8 +757,42 @@ function updateBar() {
 }
 $('btnConfirm').addEventListener('click', () => { for (const id of [...pending.keys()]) unmark(id); render(); toast('確認済みにしました'); });
 
+/* ---------- 自治体の基準を保存・呼び出す ---------- */
+function muniAll() { try { return JSON.parse(localStorage.getItem(LS_MUNI) || '{}') || {}; } catch (e) { return {}; } }
+function muniFill(sel) {
+  const all = muniAll(); const names = Object.keys(all).sort((a, b) => a.localeCompare(b, 'ja'));
+  $('muniList').innerHTML = '<option value="">保存した自治体を選ぶ</option>' + names.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+  if (sel && all[sel]) $('muniList').value = sel;
+}
+function after() { if (isSample) { isSample = false; $('sampleNote').hidden = true; } render(); }
+$('muniSave').addEventListener('click', () => {
+  const d = getForm(); const name = d.muni.trim();
+  if (!name) { toast('自治体名を入れてから保存してください'); $('muni').focus(); return; }
+  const all = muniAll(); all[name] = Object.fromEntries(MUNI_KEYS.map((k) => [k, d[k]]));
+  try { localStorage.setItem(LS_MUNI, JSON.stringify(all)); } catch (e) { toast('この画面では保存できませんでした'); return; }
+  muniFill(name); toast(`「${name}」の基準を保存しました（この端末のみ）`);
+});
+$('muniLoad').addEventListener('click', () => {
+  const name = $('muniList').value; const m = muniAll()[name];
+  if (!m) { toast('保存した自治体を選んでください'); return; }
+  const d = { ...getForm(), ...m }; setForm(d); after(); toast(`「${name}」の基準を入れました`);
+});
+$('muniDel').addEventListener('click', () => {
+  const name = $('muniList').value; const all = muniAll();
+  if (!all[name]) { toast('削除する自治体を選んでください'); return; }
+  delete all[name]; try { localStorage.setItem(LS_MUNI, JSON.stringify(all)); } catch (e) {}
+  muniFill(); toast(`「${name}」を削除しました`);
+});
+const KD_TOKYO = { '1': ['5', '0.6', '', '', ''], '2': ['5', '1.25', '8', '0.6', ''], '3': ['10', '1.25', '8', '0.6', ''] };
+$('kdTokyo').addEventListener('click', () => {
+  const p = KD_TOKYO[$('koudo').value]; if (!p) return;
+  ['kdBase', 'kdS1', 'kdBreak', 'kdS2'].forEach((k, i) => { $(k).value = p[i]; unmark(k); });
+  after(); toast('東京都の数値を入れました。自治体ごとに違うので確認してください');
+});
+muniFill();
+
 let start = SAMPLE;
-try { const s = JSON.parse(localStorage.getItem(LS) || 'null'); if (s && s.d && s.d.zone && !s.isSample) { start = s.d; isSample = false; $('sampleNote').hidden = true; } } catch (e) {}
+try { const s = JSON.parse(localStorage.getItem(LS) || 'null'); if (s && s.d && s.d.zone && !s.isSample) { start = { ...EMPTY, ...s.d }; isSample = false; $('sampleNote').hidden = true; } } catch (e) {}
 setForm(start); render();
 </script>
 
